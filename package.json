@@ -20,9 +20,8 @@
       "electron/**/*"
     ],
     "win": {
-      "target": [
-        "portable"
-      ],
+      "target": ["portable"],
+      "requestedExecutionLevel": "requireAdministrator",
       "artifactName": "${productName}_${version}.${ext}"
     },
     "nsis": {
