@@ -20,13 +20,19 @@
       "electron/**/*"
     ],
     "win": {
-      "target": ["portable"],
+      "target": ["nsis"],
       "requestedExecutionLevel": "requireAdministrator",
-      "artifactName": "${productName}_${version}.${ext}"
+      "artifactName": "${productName}_Setup_${version}.${ext}"
     },
     "nsis": {
-      "oneClick": true,
-      "allowToChangeInstallationDirectory": false
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "uninstallDisplayName": "Supprimer TL DPS Meter",
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "TL DPS Meter",
+      "allowElevation": true,
+      "unicode": true
     }
   },
   "dependencies": {
