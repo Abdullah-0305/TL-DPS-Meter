@@ -1,16 +1,50 @@
-# React + Vite
+# ⚔️ TL DPS Meter - Throne and Liberty
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Un analyseur de combat léger, performant et non-intrusif pour **Throne and Liberty**. Suivez votre DPS, vos taux de critiques et vos attaques puissantes en temps réel.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🚀 Installation & Utilisation
 
-## React Compiler
+1. **Téléchargement** : Allez dans la section [Releases](https://github.com/Abdullah-0305/TL-DPS-Meter/releases) et téléchargez le dernier fichier `.zip`.
+2. **Extraction** : Extrayez le contenu du ZIP dans le dossier de votre choix.
+3. **Configuration en jeu** :
+   * Lancez **Throne and Liberty**.
+   * Activez l'option **"Enregistrer l'historique de combat"**.
+4. **Lancement** : Faites un clic-droit sur `TL DPS Meter.exe` et choisissez **"Exécuter en tant qu'administrateur"**.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## ⚙️ Comment ça marche ?
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+L'outil fonctionne de manière sécurisée sans jamais interférer avec les processus du jeu :
+
+* **Lecture de fichiers logs** : L'application lit les fichiers texte (`.log`) générés par le jeu dans votre dossier `%LOCALAPPDATA%\TL\Saved\CombatLogs`. 
+* **Sécurité Anti-Ban** : Comme l'outil ne s'injecte pas dans la mémoire du jeu (RAM) et ne modifie aucun fichier, il respecte les conditions d'utilisation et ne présente aucun risque de bannissement.
+* **Précision en temps réel** : Les données sont analysées ligne par ligne dès qu'elles sont écrites par le serveur du jeu.
+* **Détails des compétences** : Cliquez sur n'importe quelle ligne du tableau pour ouvrir une modale détaillée affichant les statistiques (Min/Max/Moyenne) par type de coup (Normal, Critique, Heavy).
+
+---
+
+## 🛡️ Notes de sécurité & Windows
+
+* **SmartScreen** : Comme l'exécutable n'est pas signé numériquement, Windows affichera une alerte au premier lancement. Cliquez sur **"Informations complémentaires"** puis **"Exécuter quand même"**.
+* **Mode Administrateur** : Ce mode est nécessaire pour permettre à l'application de lire les fichiers créés par le jeu sans blocage du système.
+
+---
+
+## 🛠️ Développement
+
+Projet réalisé avec :
+* **React 19** + **Vite** (Frontend)
+* **Electron** (Framework desktop)
+* **Chokidar** (Surveillance des fichiers en temps réel)
+
+---
+
+## 📝 Licence
+
+Ce projet est sous licence MIT. Libre à vous de le modifier et de le partager.
+
+---
+*Créé par Abdullah-0305*
