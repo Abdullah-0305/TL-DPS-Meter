@@ -1,4 +1,6 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
+const { autoUpdater } = require('electron-updater'); 
+
 const path = require('path');
 const fs = require('fs');
 const chokidar = require('chokidar');
@@ -34,7 +36,32 @@ function createWindow() {
   mainWindow.webContents.on('did-finish-load', () => {
     initLogWatcher();
   });
+
+  // CORRECTION ICI : Utilisation de mainWindow au lieu de win
+  mainWindow.once('ready-to-show', () => {
+    if (!isDev) {
+      autoUpdater.checkForUpdatesAndNotify();
+    }
+  });
 }
+
+// --- GESTION DES MISES À JOUR ---
+
+autoUpdater.on('update-available', () => {
+  console.log('Mise à jour disponible !');
+  // Optionnel : Envoyer une info au front-end
+  // mainWindow.webContents.send('update-message', 'Téléchargement de la mise à jour...');
+});
+
+autoUpdater.on('update-downloaded', () => {
+  console.log('Mise à jour téléchargée. Elle sera installée au redémarrage.');
+});
+
+autoUpdater.on('error', (err) => {
+  console.error('Erreur Updater:', err);
+});
+
+// --- RESTE DE TON CODE ---
 
 app.whenReady().then(createWindow);
 

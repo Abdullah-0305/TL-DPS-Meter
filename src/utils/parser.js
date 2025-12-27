@@ -43,7 +43,7 @@ export const parseLogLine = (line) => {
     targetId: parts[3],
     damage: parseInt(parts[4]) || 0,
     isCrit: parts[5] === '1',
-    sourceName: parts[8], // Supposition basée sur l'exemple "azaura"
-    targetName: parts[9]  // Supposition basée sur l'exemple "Mannequin..."
+    sourceName: parts[8], 
+    targetName: parts[9]
   };
 };
