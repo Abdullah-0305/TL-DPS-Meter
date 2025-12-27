@@ -1,4 +1,3 @@
-// electron/preload.js
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -15,15 +14,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onNewLogLine: (callback) => {
     const subscription = (_event, value) => callback(value);
     ipcRenderer.on('new-log-line', subscription);
-    // On retourne une fonction pour supprimer spécifiquement cet écouteur
     return () => ipcRenderer.removeListener('new-log-line', subscription);
+  },
+  // NOUVEAU : Pour les messages de mise à jour
+  onUpdateStatus: (callback) => {
+    const subscription = (_event, value) => callback(value);
+    ipcRenderer.on('update-status', subscription);
+    return () => ipcRenderer.removeListener('update-status', subscription);
   },
   startMonitoring: () => ipcRenderer.send('start-monitoring'),
   stopMonitoring: () => ipcRenderer.send('stop-monitoring'),
-  // Méthode de secours pour tout nettoyer d'un coup
   clearAllListeners: () => {
     ipcRenderer.removeAllListeners('new-log-line');
     ipcRenderer.removeAllListeners('log-file-changed');
     ipcRenderer.removeAllListeners('log-status');
+    ipcRenderer.removeAllListeners('update-status');
   }
 });

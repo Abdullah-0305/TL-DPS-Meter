@@ -1,6 +1,6 @@
 {
   "name": "tl-dps-meter",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "DPS Meter for Throne and Liberty",
   "main": "electron/main.js",
   "author": "Abdullah-0305",
@@ -16,7 +16,7 @@
       "owner": "Abdullah-0305",
       "repo": "TL-DPS-Meter"
     },
-    "productName": "TL DPS Meter",
+    "productName": "TL-DPS-Meter",
     "directories": {
       "output": "dist_electron"
     },

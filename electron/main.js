@@ -1,6 +1,5 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const { autoUpdater } = require('electron-updater'); 
-
 const path = require('path');
 const fs = require('fs');
 const chokidar = require('chokidar');
@@ -37,7 +36,6 @@ function createWindow() {
     initLogWatcher();
   });
 
-  // CORRECTION ICI : Utilisation de mainWindow au lieu de win
   mainWindow.once('ready-to-show', () => {
     if (!isDev) {
       autoUpdater.checkForUpdatesAndNotify();
@@ -46,23 +44,32 @@ function createWindow() {
 }
 
 // --- GESTION DES MISES À JOUR ---
+autoUpdater.on('checking-for-update', () => {
+  mainWindow.webContents.send('update-status', 'Vérification des mises à jour...');
+});
 
-autoUpdater.on('update-available', () => {
-  console.log('Mise à jour disponible !');
-  // Optionnel : Envoyer une info au front-end
-  // mainWindow.webContents.send('update-message', 'Téléchargement de la mise à jour...');
+autoUpdater.on('update-available', (info) => {
+  mainWindow.webContents.send('update-status', `Mise à jour v${info.version} disponible !`);
+});
+
+autoUpdater.on('update-not-available', () => {
+  mainWindow.webContents.send('update-status', ''); // On cache si rien n'est trouvé
+});
+
+autoUpdater.on('download-progress', (progressObj) => {
+  const msg = `Téléchargement : ${Math.round(progressObj.percent)}%`;
+  mainWindow.webContents.send('update-status', msg);
 });
 
 autoUpdater.on('update-downloaded', () => {
-  console.log('Mise à jour téléchargée. Elle sera installée au redémarrage.');
+  mainWindow.webContents.send('update-status', 'Mise à jour prête ! Redémarrez l\'application.');
 });
 
 autoUpdater.on('error', (err) => {
-  console.error('Erreur Updater:', err);
+  mainWindow.webContents.send('update-status', `Erreur Update : ${err.message}`);
 });
 
-// --- RESTE DE TON CODE ---
-
+// --- LOGIQUE DE L'APP ---
 app.whenReady().then(createWindow);
 
 app.on('window-all-closed', () => {
@@ -91,7 +98,6 @@ ipcMain.on('start-monitoring', () => {
       const stats = fs.statSync(currentLogPath);
       currentOffset = stats.size; 
       isMonitoring = true;
-      console.log(`START: ${file.name} | Offset: ${currentOffset}`);
       mainWindow.webContents.send('log-status', `En attente de combat...`);
       mainWindow.webContents.send('log-file-changed', file.name);
     } catch (e) { console.error(e); }
@@ -111,18 +117,12 @@ function initLogWatcher() {
 
   watcher.on('change', (filePath) => {
     if (!isMonitoring || filePath !== currentLogPath) return;
-
     try {
       const stats = fs.statSync(filePath);
       if (stats.size > currentOffset) {
-        const stream = fs.createReadStream(filePath, {
-          start: currentOffset,
-          end: stats.size
-        });
-
+        const stream = fs.createReadStream(filePath, { start: currentOffset, end: stats.size });
         let newData = '';
         stream.on('data', (chunk) => { newData += chunk.toString(); });
-
         stream.on('end', () => {
           currentOffset = stats.size;
           const lines = newData.split(/\r?\n/);

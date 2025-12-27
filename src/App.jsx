@@ -35,12 +35,11 @@ function App() {
   const [activeFile, setActiveFile] = useState('En attente...');
   const [status, setStatus] = useState('Prêt');
   const [isMonitoring, setIsMonitoring] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState(''); // État pour l'updater
   
   const [displayTotalDamage, setDisplayTotalDamage] = useState(0);
   const [displayDuration, setDisplayDuration] = useState(0);
   const [displaySkills, setDisplaySkills] = useState({});
-  
-  // ÉTAT POUR LA MODALE
   const [selectedSkillId, setSelectedSkillId] = useState(null);
 
   const skillsDataRef = useRef({});
@@ -64,6 +63,9 @@ function App() {
     }, 100);
 
     if (window.electronAPI) {
+      // Ecouteur de mise à jour
+      window.electronAPI.onUpdateStatus((msg) => setUpdateStatus(msg));
+
       window.electronAPI.onLogFileChanged((fileName) => {
         setActiveFile(fileName);
         resetStats();
@@ -71,7 +73,6 @@ function App() {
 
       window.electronAPI.onNewLogLine((newLine) => {
         const data = parseLogLine(newLine);
-        
         if (data && data.timestamp >= (clickTimestampRef.current - 500)) {
           const lineSignature = `${data.timestamp}-${data.skillName}-${data.damage}`;
           if (processedLinesRef.current.has(lineSignature)) return;
@@ -80,12 +81,7 @@ function App() {
           const skillKey = data.skillName;
           if (!skillsDataRef.current[skillKey]) {
             skillsDataRef.current[skillKey] = {
-              id: skillKey,
-              name: data.skillName,
-              totalDamage: 0,
-              hits: 0,
-              critHits: 0,
-              powerHits: 0,
+              id: skillKey, name: data.skillName, totalDamage: 0, hits: 0, critHits: 0, powerHits: 0,
               normalStats: { count: 0, totalDamage: 0, min: Infinity, max: 0 },
               critStats: { count: 0, totalDamage: 0, min: Infinity, max: 0 },
               powerStats: { count: 0, totalDamage: 0, min: Infinity, max: 0 }
@@ -95,78 +91,47 @@ function App() {
           const skill = skillsDataRef.current[skillKey];
           skill.totalDamage += data.damage;
           skill.hits += 1;
-
-          if (data.isCrit) {
-            skill.critHits += 1;
-            skill.critStats = updateHitStats(skill.critStats, data.damage);
-          }
-          if (data.isPower) {
-            skill.powerHits += 1;
-            skill.powerStats = updateHitStats(skill.powerStats, data.damage);
-          }
-          if (!data.isCrit && !data.isPower) {
-            skill.normalStats = updateHitStats(skill.normalStats, data.damage);
-          }
+          if (data.isCrit) { skill.critHits += 1; skill.critStats = updateHitStats(skill.critStats, data.damage); }
+          if (data.isPower) { skill.powerHits += 1; skill.powerStats = updateHitStats(skill.powerStats, data.damage); }
+          if (!data.isCrit && !data.isPower) { skill.normalStats = updateHitStats(skill.normalStats, data.damage); }
 
           if (!combatStartRef.current) combatStartRef.current = data.timestamp;
           combatEndRef.current = data.timestamp;
           totalDamageRef.current += data.damage;
         }
       });
-
-      return () => {
-        window.removeEventListener('keydown', handleEsc);
-        clearInterval(displayInterval);
-      };
     }
+
+    return () => {
+      window.removeEventListener('keydown', handleEsc);
+      clearInterval(displayInterval);
+    };
   }, []);
 
   const resetStats = () => {
-    totalDamageRef.current = 0;
-    skillsDataRef.current = {};
-    combatStartRef.current = null;
-    combatEndRef.current = null;
-    processedLinesRef.current.clear();
-    setDisplayTotalDamage(0);
-    setDisplayDuration(0);
-    setDisplaySkills({});
-    setSelectedSkillId(null); // Fermer la modale au reset
+    totalDamageRef.current = 0; skillsDataRef.current = {}; combatStartRef.current = null;
+    combatEndRef.current = null; processedLinesRef.current.clear();
+    setDisplayTotalDamage(0); setDisplayDuration(0); setDisplaySkills({}); setSelectedSkillId(null);
   };
 
   const sortedSkills = useMemo(() => {
     const safeDuration = displayDuration < 1 ? 1 : displayDuration;
-    return Object.values(displaySkills)
-      .sort((a, b) => b.totalDamage - a.totalDamage)
-      .map((skill, index) => ({
-        ...skill,
-        rank: index + 1,
-        ratio: displayTotalDamage > 0 ? ((skill.totalDamage / displayTotalDamage) * 100).toFixed(1) : 0,
-        dps: Math.round(skill.totalDamage / safeDuration),
-        critRate: skill.hits > 0 ? Math.round((skill.critHits / skill.hits) * 100) : 0,
-        heavyRate: skill.hits > 0 ? Math.round((skill.powerHits / skill.hits) * 100) : 0
-      }));
+    return Object.values(displaySkills).sort((a, b) => b.totalDamage - a.totalDamage).map((skill, index) => ({
+      ...skill, rank: index + 1,
+      ratio: displayTotalDamage > 0 ? ((skill.totalDamage / displayTotalDamage) * 100).toFixed(1) : 0,
+      dps: Math.round(skill.totalDamage / safeDuration),
+      critRate: skill.hits > 0 ? Math.round((skill.critHits / skill.hits) * 100) : 0,
+      heavyRate: skill.hits > 0 ? Math.round((skill.powerHits / skill.hits) * 100) : 0
+    }));
   }, [displaySkills, displayTotalDamage, displayDuration]);
 
-  // RÉCUPÉRATION DU SKILL SÉLECTIONNÉ
-  const selectedSkill = useMemo(() => {
-    return sortedSkills.find(s => s.id === selectedSkillId) || null;
-  }, [selectedSkillId, sortedSkills]);
+  const selectedSkill = useMemo(() => sortedSkills.find(s => s.id === selectedSkillId) || null, [selectedSkillId, sortedSkills]);
 
   const toggleMonitoring = () => {
-    if (isMonitoring) {
-      window.electronAPI.stopMonitoring();
-      setIsMonitoring(false);
-      setStatus('Pause');
-    } else {
-      resetStats();
-      clickTimestampRef.current = Date.now(); 
-      window.electronAPI.startMonitoring();
-      setIsMonitoring(true);
-      setStatus('En attente de combat...');
-    }
+    if (isMonitoring) { window.electronAPI.stopMonitoring(); setIsMonitoring(false); setStatus('Pause'); }
+    else { resetStats(); clickTimestampRef.current = Date.now(); window.electronAPI.startMonitoring(); setIsMonitoring(true); setStatus('En attente...'); }
   };
 
-  // HELPER POUR LES SECTIONS DE DÉTAILS
   const renderDetailSection = (title, stats) => {
     const avg = stats.count > 0 ? Math.round(stats.totalDamage / stats.count) : 0;
     return (
@@ -182,8 +147,13 @@ function App() {
 
   return (
     <div className="container">
+      {updateStatus && (
+        <div style={{ backgroundColor: '#2c3e50', color: '#3498db', padding: '8px', textAlign: 'center', fontWeight: 'bold', borderBottom: '2px solid #3498db' }}>
+          🚀 {updateStatus}
+        </div>
+      )}
       <header className="header">
-        <h1>⚔️ TL DPS Meter</h1>
+        <h1>⚔️ TL DPS Meter - v1.1.0 - Test </h1>
         <div className="file-info">{activeFile}</div>
         <div className={`status-badge ${isMonitoring ? 'active' : 'waiting'}`}>{status}</div>
       </header>
@@ -205,9 +175,7 @@ function App() {
           <div className="skills-table-container">
             <table className="skills-table">
               <thead>
-                <tr>
-                  <th>#</th><th>Compétence</th><th>Dégâts</th><th>%</th><th>Coups</th><th>Crit%</th><th>Heavy%</th><th>DPS</th>
-                </tr>
+                <tr><th>#</th><th>Compétence</th><th>Dégâts</th><th>%</th><th>Coups</th><th>Crit%</th><th>Heavy%</th><th>DPS</th></tr>
               </thead>
               <tbody>
                 {sortedSkills.map((skill) => (
@@ -230,17 +198,11 @@ function App() {
           </div>
         </div>
 
-        {/* MODALE DE DÉTAILS */}
         {selectedSkill && (
           <div className="modal-overlay" onClick={() => setSelectedSkillId(null)}>
             <div className="modal-content" onClick={e => e.stopPropagation()}>
               <button className="close-modal-btn" onClick={() => setSelectedSkillId(null)}>×</button>
-              
-              <div className="modal-header">
-                <h2>{selectedSkill.name}</h2>
-                <div className="badge">Rang #{selectedSkill.rank}</div>
-              </div>
-
+              <div className="modal-header"><h2>{selectedSkill.name}</h2><div className="badge">Rang #{selectedSkill.rank}</div></div>
               <div className="details-grid">
                 <div className="detail-section main">
                   <h4>Général</h4>
@@ -248,7 +210,6 @@ function App() {
                   <div className="detail-stat"><span className="label">DPS:</span> <span className="value">{selectedSkill.dps.toLocaleString()}</span></div>
                   <div className="detail-stat"><span className="label">Part:</span> <span className="value">{selectedSkill.ratio}%</span></div>
                 </div>
-
                 {renderDetailSection("Attaques Normales", selectedSkill.normalStats)}
                 {renderDetailSection("Coups Critiques", selectedSkill.critStats)}
                 {renderDetailSection("Heavy Attacks", selectedSkill.powerStats)}
