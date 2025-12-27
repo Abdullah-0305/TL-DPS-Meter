@@ -153,7 +153,7 @@ function App() {
         </div>
       )}
       <header className="header">
-        <h1>⚔️ TL DPS Meter - v1.1.0 - Test </h1>
+        <h1>⚔️ TL DPS Meter</h1>
         <div className="file-info">{activeFile}</div>
         <div className={`status-badge ${isMonitoring ? 'active' : 'waiting'}`}>{status}</div>
       </header>
